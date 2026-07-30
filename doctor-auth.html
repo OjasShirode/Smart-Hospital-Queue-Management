@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doctor Portal - MediQueue</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- EmailJS SDK -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  <script type="text/javascript">
+    (function(){
+       emailjs.init("0hGAbrm96MybeKwq7");
+    })();
+  </script>
+</head>
+<body class="bg-slate-950 font-sans text-slate-800 antialiased min-h-screen flex items-center justify-center p-3 sm:p-6">
+
+  <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-8 shadow-2xl relative">
+    <a href="index.html" class="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-emerald-400 mb-6 transition">
+      <i class="fa-solid fa-arrow-left"></i> Back to Main Page
+    </a>
+
+    <!-- Header -->
+    <div class="text-center mb-6">
+      <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl mx-auto mb-3">
+        <i class="fa-solid fa-user-doctor"></i>
+      </div>
+      <h2 class="text-xl sm:text-2xl font-extrabold text-white">Doctor Portal</h2>
+      <p class="text-slate-400 text-xs mt-1">Manage consultation queue & OPD counters</p>
+    </div>
+
+    <!-- Alert Box -->
+    <div id="alertBox" class="hidden p-3 rounded-xl text-xs font-semibold mb-4 text-center break-words"></div>
+
+    <!-- Toggle Buttons -->
+    <div class="flex bg-slate-800/80 p-1 rounded-xl mb-6 border border-slate-700/60">
+      <button id="signInTab" onclick="switchTab('signin')" class="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-emerald-600 shadow transition">Sign In</button>
+      <button id="signUpTab" onclick="switchTab('signup')" class="flex-1 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition">Sign Up</button>
+    </div>
+
+    <!-- SIGN IN FORM (EMAIL + OTP) -->
+    <form id="signInForm" class="space-y-4">
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-1">Email Address</label>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input type="email" id="loginEmail" placeholder="doctor@hospital.com" class="w-full sm:flex-1 min-w-0 px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500 transition" required>
+          <button type="button" id="sendOtpBtn" class="w-full sm:w-auto px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-600/10 whitespace-nowrap">Send OTP</button>
+        </div>
+      </div>
+
+      <!-- OTP Input Section (6 Boxes) -->
+      <div id="otpSection" class="hidden space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-2">Enter 6-Digit Email OTP</label>
+          <div class="grid grid-cols-6 gap-1.5 sm:gap-2" id="otpBoxContainer">
+            <input type="text" maxlength="1" class="otp-input w-full h-11 sm:h-12 text-center text-base sm:text-lg font-extrabold bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500 transition">
+            <input type="text" maxlength="1" class="otp-input w-full h-11 sm:h-12 text-center text-base sm:text-lg font-extrabold bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500 transition">
+            <input type="text" maxlength="1" class="otp-input w-full h-11 sm:h-12 text-center text-base sm:text-lg font-extrabold bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500 transition">
+            <input type="text" maxlength="1" class="otp-input w-full h-11 sm:h-12 text-center text-base sm:text-lg font-extrabold bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500 transition">
+            <input type="text" maxlength="1" class="otp-input w-full h-11 sm:h-12 text-center text-base sm:text-lg font-extrabold bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500 transition">
+            <input type="text" maxlength="1" class="otp-input w-full h-11 sm:h-12 text-center text-base sm:text-lg font-extrabold bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500 transition">
+          </div>
+        </div>
+        <button type="submit" id="verifyOtpBtn" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-500/20 hover:opacity-95 transition">Verify OTP & Sign In</button>
+      </div>
+    </form>
+
+    <!-- SIGN UP FORM -->
+    <form id="signUpForm" class="space-y-4 hidden">
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-1">Full Name (With Title)</label>
+        <input type="text" id="regName" placeholder="Dr. Sarah Jenkins" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500 transition" required>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-1">Email Address</label>
+        <input type="email" id="regEmail" placeholder="doctor@hospital.com" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500 transition" required>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-1">Medical License Number</label>
+        <input type="text" id="regLicense" placeholder="MED-992011" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500 transition" required>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Department</label>
+          <select id="regDept" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500 transition">
+            <option class="bg-slate-800 text-white">General Medicine</option>
+            <option class="bg-slate-800 text-white">Pediatrics</option>
+            <option class="bg-slate-800 text-white">Orthopedics</option>
+            <option class="bg-slate-800 text-white">Cardiology</option>
+            <option class="bg-slate-800 text-white">Dermatology</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">OPD Cabinet No.</label>
+          <input type="text" id="regCabinet" placeholder="Room #104" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500 transition" required>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-300 mb-1">Password</label>
+        <input type="password" id="regPassword" placeholder="••••••••" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500 transition" required minlength="6">
+      </div>
+      <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-500/20 hover:opacity-95 transition">Register Doctor Profile</button>
+    </form>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getDatabase, ref, set, get, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAnHPWqR7-kv8CfCIPeP2GbLinYeMBbdvI",
+        authDomain: "mediqueue-7e102.firebaseapp.com",
+        databaseURL: "https://mediqueue-7e102-default-rtdb.firebaseio.com",
+        projectId: "mediqueue-7e102",
+        storageBucket: "mediqueue-7e102.firebasestorage.app",
+        messagingSenderId: "706470463870",
+        appId: "1:706470463870:web:af79e7a633cde754bacb2f",
+        measurementId: "G-V1MKN7QCMM"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    let generatedOtp = null;
+    let otpTargetEmail = null;
+    let targetUserData = null;
+
+    const alertBox = document.getElementById('alertBox');
+    function showAlert(msg, isError = false) {
+      alertBox.textContent = msg;
+      alertBox.className = `p-3 rounded-xl text-xs font-semibold mb-4 text-center break-words ${isError ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}`;
+      alertBox.classList.remove('hidden');
+    }
+
+    // Handle OTP Box Input Logic
+    const otpInputs = document.querySelectorAll('.otp-input');
+    otpInputs.forEach((input, index) => {
+      input.addEventListener('input', (e) => {
+        if (e.target.value.length === 1 && index < otpInputs.length - 1) {
+          otpInputs[index + 1].focus();
+        }
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !e.target.value && index > 0) {
+          otpInputs[index - 1].focus();
+        }
+      });
+
+      input.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const pasteData = e.clipboardData.getData('text').trim();
+        if (/^\d{6}$/.test(pasteData)) {
+          pasteData.split('').forEach((char, i) => {
+            if (otpInputs[i]) otpInputs[i].value = char;
+          });
+          otpInputs[5].focus();
+        }
+      });
+    });
+
+    // SIGN UP PROCESS
+    document.getElementById('signUpForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('regEmail').value.toLowerCase().trim();
+      const password = document.getElementById('regPassword').value;
+
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        await set(ref(db, 'users/' + user.uid), {
+          role: 'doctor',
+          fullName: document.getElementById('regName').value,
+          email: email,
+          licenseNo: document.getElementById('regLicense').value,
+          department: document.getElementById('regDept').value,
+          cabinetNo: document.getElementById('regCabinet').value,
+          createdAt: new Date().toISOString()
+        });
+
+        showAlert("Doctor account registered successfully! Switching to Sign In...");
+        setTimeout(() => {
+          switchTab('signin');
+          document.getElementById('loginEmail').value = email;
+          showAlert("Registration completed. Click 'Send OTP' to log in.");
+        }, 1500);
+      } catch (error) {
+        showAlert(error.message, true);
+      }
+    });
+
+    // SEND OTP LOGIC
+    document.getElementById('sendOtpBtn').addEventListener('click', async () => {
+      const email = document.getElementById('loginEmail').value.toLowerCase().trim();
+
+      if (!email) {
+        showAlert("Please enter your registered email address.", true);
+        return;
+      }
+
+      try {
+        const usersRef = ref(db, 'users');
+        const emailQuery = query(usersRef, orderByChild('email'), equalTo(email));
+        const snapshot = await get(emailQuery);
+
+        if (!snapshot.exists()) {
+          showAlert("No account found with this email. Please sign up first.", true);
+          return;
+        }
+
+        const userDataKey = Object.keys(snapshot.val())[0];
+        targetUserData = snapshot.val()[userDataKey];
+
+        if (targetUserData.role !== 'doctor') {
+          showAlert("Access denied: You are not registered as a Doctor.", true);
+          return;
+        }
+
+        generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        otpTargetEmail = email;
+
+        const expiryDate = new Date(Date.now() + 15 * 60 * 1000);
+        const formattedExpiryTime = expiryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        await emailjs.send("service_xlroq57", "template_v2k2a2d", {
+          to_name: targetUserData.fullName,
+          to_email: email,
+          passcode: generatedOtp,
+          time: formattedExpiryTime
+        });
+
+        document.getElementById('otpSection').classList.remove('hidden');
+        otpInputs[0].focus();
+        showAlert(`OTP sent successfully to ${email}. Check your inbox!`);
+      } catch (error) {
+        const errorMessage = error?.text || error?.message || JSON.stringify(error);
+        showAlert("Failed to send OTP email: " + errorMessage, true);
+      }
+    });
+
+    // VERIFY OTP & SIGN IN
+    document.getElementById('signInForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const enteredOtp = Array.from(otpInputs).map(i => i.value).join('');
+      const currentEmail = document.getElementById('loginEmail').value.toLowerCase().trim();
+
+      if (currentEmail !== otpTargetEmail || !generatedOtp) {
+        showAlert("Please click 'Send OTP' for this email address first.", true);
+        return;
+      }
+
+      if (enteredOtp.length < 6) {
+        showAlert("Please enter all 6 digits of the OTP.", true);
+        return;
+      }
+
+      if (enteredOtp === generatedOtp) {
+        localStorage.setItem('currentUser', JSON.stringify(targetUserData));
+        showAlert(`Welcome, ${targetUserData.fullName}! Redirecting...`);
+        generatedOtp = null;
+        
+        setTimeout(() => {
+          window.location.href = "doctor-dashboard.html";
+        }, 1200);
+      } else {
+        showAlert("Invalid OTP code. Please enter the correct code sent to your email.", true);
+      }
+    });
+  </script>
+
+  <script>
+    function switchTab(tab) {
+      if(tab === 'signin') {
+        document.getElementById('signInForm').classList.remove('hidden');
+        document.getElementById('signUpForm').classList.add('hidden');
+        document.getElementById('signInTab').className = 'flex-1 py-2 rounded-lg text-xs font-bold text-white bg-emerald-600 shadow transition';
+        document.getElementById('signUpTab').className = 'flex-1 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition';
+      } else {
+        document.getElementById('signInForm').classList.add('hidden');
+        document.getElementById('signUpForm').classList.remove('hidden');
+        document.getElementById('signUpTab').className = 'flex-1 py-2 rounded-lg text-xs font-bold text-white bg-emerald-600 shadow transition';
+        document.getElementById('signInTab').className = 'flex-1 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition';
+      }
+    }
+  </script>
+</body>
+</html>

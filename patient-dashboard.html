@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patient Dashboard - MediQueue</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    /* --- Interactive 3D Gold Coin Styling --- */
+    
+    /* 3D Perspective Wrapper */
+    .coin-perspective {
+      perspective: 1000px;
+    }
+
+    /* Flip Card Container */
+    .coin-card {
+      width: 140px;
+      height: 140px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 1.8s cubic-bezier(0.25, 1, 0.5, 1);
+      cursor: pointer;
+    }
+
+    @media (min-width: 640px) {
+      .coin-card {
+        width: 160px;
+        height: 160px;
+      }
+    }
+
+    /* Mouseover 360° Slow Flip Animation */
+    .coin-perspective:hover .coin-card {
+      transform: rotateY(180deg) scale(1.05);
+    }
+
+    /* Common Face Styles */
+    .coin-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      backface-visibility: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 35% 35%, #fff5a0 0%, #ffd700 25%, #d4af37 55%, #aa7c11 80%, #593e00 100%);
+      box-shadow: 
+        0 15px 35px -5px rgba(212, 175, 55, 0.6), 
+        inset 0 3px 6px rgba(255, 255, 255, 0.9), 
+        inset 0 -6px 8px rgba(0, 0, 0, 0.5);
+      border: 4px solid #fff2a3;
+      outline: 1px solid #916800;
+    }
+
+    @media (min-width: 640px) {
+      .coin-face {
+        border-width: 5px;
+      }
+    }
+
+    /* Inner Ring Detail */
+    .coin-face-inner {
+      width: 115px;
+      height: 115px;
+      border-radius: 50%;
+      border: 2px dashed #8c6200;
+      background: radial-gradient(circle at 50% 50%, #ffe033 0%, #c59b27 70%, #9e750e 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(255, 255, 255, 0.5);
+      position: relative;
+    }
+
+    @media (min-width: 640px) {
+      .coin-face-inner {
+        width: 132px;
+        height: 132px;
+      }
+    }
+
+    /* Back Face (Rotated 180 deg) */
+    .coin-back {
+      transform: rotateY(180deg);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 font-sans text-slate-100 antialiased min-h-screen">
+
+  <!-- Navbar -->
+  <nav class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50 px-4 sm:px-6 py-3.5 flex justify-between items-center flex-wrap gap-3">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 flex items-center justify-center text-base sm:text-lg font-bold shrink-0">
+        <i class="fa-solid fa-hospital-user"></i>
+      </div>
+      <div>
+        <h1 class="text-sm sm:text-base font-bold text-white leading-tight">MediQueue Patient Portal</h1>
+        <p class="text-[11px] sm:text-xs text-slate-400 truncate max-w-[180px] sm:max-w-none" id="userWelcome">Welcome Back</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 sm:gap-4 ml-auto">
+      <!-- Notification Dropdown Toggle -->
+      <div class="relative">
+        <button id="notifBtn" onclick="toggleNotifications()" class="relative p-2 sm:p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-white transition">
+          <i class="fa-solid fa-bell"></i>
+          <span id="notifBadge" class="hidden absolute -top-1 -right-1 w-3 h-3 bg-teal-500 rounded-full border-2 border-slate-900"></span>
+        </button>
+
+        <!-- Notification Panel -->
+        <div id="notifPanel" class="hidden absolute right-0 mt-3 w-72 sm:w-80 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-4 z-50">
+          <div class="flex justify-between items-center border-b border-slate-800 pb-2 mb-3">
+            <h4 class="text-xs font-bold text-white uppercase tracking-wider">Notifications</h4>
+            <span class="text-[10px] bg-teal-500/20 text-teal-400 px-2 py-0.5 rounded-full font-semibold">Live Updates</span>
+          </div>
+          <div id="notifList" class="space-y-2 max-h-60 overflow-y-auto text-xs text-slate-300">
+            <p class="text-slate-500 text-center py-2">No new notifications.</p>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="logout()" class="px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-red-400 rounded-xl border border-slate-700 transition flex items-center gap-2">
+        <i class="fa-solid fa-right-from-bracket"></i> <span class="hidden sm:inline">Logout</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content Layout -->
+  <main class="max-w-7xl mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- LEFT COLUMN: Booking Form & Controls -->
+    <section class="lg:col-span-1 space-y-6">
+
+      <!-- Appointment Booking Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl">
+        <h2 class="text-sm font-bold text-white uppercase tracking-wider mb-4 border-b border-slate-800 pb-3 flex items-center gap-2">
+          <i class="fa-solid fa-calendar-plus text-teal-400"></i> Book OPD Consultation
+        </h2>
+
+        <form id="bookAppForm" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Select Department</label>
+            <select id="appDept" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-teal-500 transition">
+              <option value="General Medicine">General Medicine</option>
+              <option value="Pediatrics">Pediatrics</option>
+              <option value="Orthopedics">Orthopedics</option>
+              <option value="Cardiology">Cardiology</option>
+              <option value="Dermatology">Dermatology</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Select Preferred Doctor</label>
+            <select id="appDoctor" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-teal-500 transition">
+              <option value="">-- Choose OPD Specialist --</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Appointment Date</label>
+            <input type="date" id="appDate" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-teal-500 transition" required>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Time Slot</label>
+            <select id="appTime" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-teal-500 transition">
+              <option value="09:00 AM">09:00 AM - Morning Slot</option>
+              <option value="10:30 AM">10:30 AM - Morning Slot</option>
+              <option value="02:00 PM">02:00 PM - Afternoon Slot</option>
+              <option value="04:30 PM">04:30 PM - Evening Slot</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Reason for Visit</label>
+            <textarea id="appReason" rows="2" placeholder="Brief details about your symptoms..." class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-teal-500 transition"></textarea>
+          </div>
+
+          <button type="submit" class="w-full py-3 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-teal-500/20 hover:opacity-95 transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-ticket"></i> Generate OPD Gold Token
+          </button>
+        </form>
+      </div>
+
+    </section>
+
+    <!-- RIGHT COLUMN: Interactive Token & Live Status Cards -->
+    <section class="lg:col-span-2 space-y-6 min-w-0">
+
+      <!-- Active Token Visualization Container -->
+      <div id="activeTokenSection" class="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
+        <h3 class="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-3 mb-6 flex items-center gap-2">
+          <i class="fa-solid fa-coins text-amber-400"></i> Active Gold Token Status
+        </h3>
+
+        <div id="noTokenDisplay" class="text-center py-8">
+          <i class="fa-solid fa-ticket-simple text-4xl text-slate-700 mb-3 block"></i>
+          <p class="text-xs text-slate-400">You do not have any active appointments booked.</p>
+          <p class="text-[11px] text-slate-500 mt-1">Book an appointment using the form to generate your digital turn token.</p>
+        </div>
+
+        <div id="tokenDisplay" class="hidden flex flex-col md:flex-row items-center justify-between gap-6">
+          
+          <!-- Interactive 3D Gold Coin Badge -->
+          <div class="coin-perspective my-2">
+            <div class="coin-card">
+              <!-- FRONT FACE -->
+              <div class="coin-face">
+                <div class="coin-face-inner">
+                  <p class="text-[9px] font-black text-amber-950 uppercase tracking-widest">MediQueue</p>
+                  <p id="coinTokenNumber" class="text-lg sm:text-2xl font-black text-amber-950 my-0.5">TKN-00</p>
+                  <span class="text-[8px] font-bold text-amber-900 uppercase">OPD Gold Desk</span>
+                </div>
+              </div>
+              <!-- BACK FACE -->
+              <div class="coin-face coin-back">
+                <div class="coin-face-inner">
+                  <p class="text-[8px] font-extrabold text-amber-950 uppercase">Estimated Turn</p>
+                  <p id="coinEtaVal" class="text-xs sm:text-sm font-black text-amber-950 my-1">15 Mins</p>
+                  <i class="fa-solid fa-hospital text-amber-900 text-xs"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Consultation Details -->
+          <div class="flex-1 space-y-3 w-full">
+            <div class="flex justify-between items-center bg-slate-800/60 p-3 rounded-xl border border-slate-700/60">
+              <span class="text-xs text-slate-400">Status:</span>
+              <span id="tokenStatusBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">Confirmed</span>
+            </div>
+
+            <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-800 space-y-1 text-xs">
+              <p class="text-slate-300"><strong>Doctor:</strong> <span id="tokenDocName" class="text-white">Dr. Sarah Jenkins</span></p>
+              <p class="text-slate-300"><strong>Department:</strong> <span id="tokenDept">General Medicine</span></p>
+              <p class="text-slate-300"><strong>Date & Slot:</strong> <span id="tokenSlot">2026-07-28 • 10:30 AM</span></p>
+            </div>
+
+            <div class="flex gap-2">
+              <button onclick="cancelAppointment()" class="flex-1 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold rounded-xl transition">
+                Cancel Token
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Historical Appointments Table -->
+      <div class="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl">
+        <h3 class="text-xs sm:text-sm font-bold text-white uppercase tracking-wider mb-4 border-b border-slate-800 pb-3 flex items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left text-teal-400"></i> Consultation History
+        </h3>
+
+        <div class="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+          <table class="w-full min-w-[500px] text-left text-xs text-slate-300">
+            <thead class="bg-slate-800/50 text-slate-400 uppercase text-[10px] tracking-wider">
+              <tr>
+                <th class="p-3 rounded-l-xl">Token</th>
+                <th class="p-3">Doctor</th>
+                <th class="p-3">Date</th>
+                <th class="p-3">Time</th>
+                <th class="p-3 rounded-r-xl text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody" class="divide-y divide-slate-800">
+              <tr>
+                <td colspan="5" class="p-4 text-center text-slate-500">No previous appointment records found.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, push, set, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAnHPWqR7-kv8CfCIPeP2GbLinYeMBbdvI",
+        authDomain: "mediqueue-7e102.firebaseapp.com",
+        databaseURL: "https://mediqueue-7e102-default-rtdb.firebaseio.com",
+        projectId: "mediqueue-7e102",
+        storageBucket: "mediqueue-7e102.firebasestorage.app",
+        messagingSenderId: "706470463870",
+        appId: "1:706470463870:web:af79e7a633cde754bacb2f",
+        measurementId: "G-V1MKN7QCMM"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+
+    if (!currentUser || currentUser.role !== 'patient') {
+      window.location.href = 'patient-auth.html';
+    }
+
+    document.getElementById('userWelcome').textContent = `Logged in: ${currentUser.fullName}`;
+
+    // Set minimum booking date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('appDate').min = today;
+    document.getElementById('appDate').value = today;
+
+    let activeAppointmentId = null;
+
+    // Load registered doctors into selector dropdown
+    function loadDoctors() {
+      const usersRef = ref(db, 'users');
+      onValue(usersRef, (snapshot) => {
+        const docSelect = document.getElementById('appDoctor');
+        docSelect.innerHTML = '<option value="">-- Choose OPD Specialist --</option>';
+
+        if (snapshot.exists()) {
+          const users = snapshot.val();
+          Object.keys(users).forEach(uid => {
+            const u = users[uid];
+            if (u.role === 'doctor') {
+              const opt = document.createElement('option');
+              opt.value = uid;
+              opt.textContent = `${u.fullName} (${u.department || 'General'}) - Cab ${u.cabinetNo || 'A-1'}`;
+              opt.dataset.docName = u.fullName;
+              opt.dataset.dept = u.department || 'General Medicine';
+              docSelect.appendChild(opt);
+            }
+          });
+        }
+      });
+    }
+
+    // Listen for live appointment status updates
+    function listenAppointments() {
+      const appsRef = ref(db, 'appointments');
+      onValue(appsRef, (snapshot) => {
+        const historyTableBody = document.getElementById('historyTableBody');
+        historyTableBody.innerHTML = '';
+
+        let activeFound = false;
+
+        if (snapshot.exists()) {
+          const apps = snapshot.val();
+          
+          Object.keys(apps).forEach(appId => {
+            const a = apps[appId];
+
+            if (a.patientEmail === currentUser.email || a.patientUid === currentUser.uid) {
+              
+              // Check for ongoing active token
+              if ((a.status === 'Confirmed' || a.status === 'In Consultation') && !activeFound) {
+                activeFound = true;
+                activeAppointmentId = appId;
+
+                document.getElementById('noTokenDisplay').classList.add('hidden');
+                document.getElementById('tokenDisplay').classList.remove('hidden');
+
+                document.getElementById('coinTokenNumber').textContent = a.tokenNumber;
+                document.getElementById('tokenDocName').textContent = a.doctorName || 'Assigned Doctor';
+                document.getElementById('tokenDept').textContent = a.department || 'General Medicine';
+                document.getElementById('tokenSlot').textContent = `${a.date} • ${a.time}`;
+
+                const badge = document.getElementById('tokenStatusBadge');
+                badge.textContent = a.status;
+                if (a.status === 'In Consultation') {
+                  badge.className = "px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/20 text-teal-400 border border-teal-500/30 animate-pulse";
+                  document.getElementById('coinEtaVal').textContent = "NOW IN";
+                } else {
+                  badge.className = "px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30";
+                  document.getElementById('coinEtaVal').textContent = "~15 Mins";
+                }
+              }
+
+              // Append to history table
+              const tr = document.createElement('tr');
+              tr.className = "border-b border-slate-800/50";
+              tr.innerHTML = `
+                <td class="p-3 font-bold text-amber-400">${a.tokenNumber}</td>
+                <td class="p-3 font-medium text-white">${a.doctorName || 'Doctor'}</td>
+                <td class="p-3 text-slate-400">${a.date}</td>
+                <td class="p-3 text-slate-400">${a.time}</td>
+                <td class="p-3 text-right">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${getStatusStyle(a.status)}">${a.status}</span>
+                </td>
+              `;
+              historyTableBody.appendChild(tr);
+            }
+          });
+        }
+
+        if (!activeFound) {
+          activeAppointmentId = null;
+          document.getElementById('noTokenDisplay').classList.remove('hidden');
+          document.getElementById('tokenDisplay').classList.add('hidden');
+        }
+
+        if (historyTableBody.children.length === 0) {
+          historyTableBody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">No previous appointment records found.</td></tr>';
+        }
+      });
+    }
+
+    function getStatusStyle(status) {
+      switch(status) {
+        case 'In Consultation': return 'bg-teal-500/20 text-teal-400 border-teal-500/30';
+        case 'Confirmed': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+        case 'Completed': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+        case 'Cancelled': return 'bg-red-500/20 text-red-400 border-red-500/20';
+        default: return 'bg-slate-800 text-slate-400 border-slate-700';
+      }
+    }
+
+    // Handle Appointment Booking Submission
+    document.getElementById('bookAppForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (activeAppointmentId) {
+        alert("You already have an active OPD token! Please complete or cancel it before booking a new one.");
+        return;
+      }
+
+      const docSelect = document.getElementById('appDoctor');
+      const selectedOption = docSelect.options[docSelect.selectedIndex];
+
+      if (!docSelect.value) {
+        alert("Please select an OPD doctor.");
+        return;
+      }
+
+      const doctorUid = docSelect.value;
+      const doctorName = selectedOption.dataset.docName || 'Dr. Specialist';
+      const department = document.getElementById('appDept').value;
+      const date = document.getElementById('appDate').value;
+      const time = document.getElementById('appTime').value;
+      const reason = document.getElementById('appReason').value || 'Routine OPD Checkup';
+
+      const tokenNum = "TKN-" + Math.floor(1000 + Math.random() * 9000);
+      const newAppRef = push(ref(db, 'appointments'));
+
+      await set(newAppRef, {
+        id: newAppRef.key,
+        tokenNumber: tokenNum,
+        patientUid: currentUser.uid || 'anon',
+        patientName: currentUser.fullName,
+        patientEmail: currentUser.email,
+        doctorUid: doctorUid,
+        doctorName: doctorName,
+        department: department,
+        date: date,
+        time: time,
+        reason: reason,
+        status: 'Confirmed',
+        createdAt: new Date().toISOString()
+      });
+
+      alert(`Appointment booked successfully! Your Gold Token is ${tokenNum}`);
+      document.getElementById('appReason').value = '';
+    });
+
+    // Cancel Active Appointment
+    window.cancelAppointment = async () => {
+      if (activeAppointmentId && confirm("Are you sure you want to cancel this OPD token?")) {
+        await update(ref(db, `appointments/${activeAppointmentId}`), { status: 'Cancelled' });
+        alert("OPD Gold Token cancelled.");
+      }
+    };
+
+    window.toggleNotifications = () => {
+      const panel = document.getElementById('notifPanel');
+      panel.classList.toggle('hidden');
+    };
+
+    window.logout = () => {
+      localStorage.removeItem('currentUser');
+      window.location.href = 'patient-auth.html';
+    };
+
+    loadDoctors();
+    listenAppointments();
+  </script>
+</body>
+</html>

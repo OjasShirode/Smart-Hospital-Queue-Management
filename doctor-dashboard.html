@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doctor Dashboard - MediQueue</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-950 font-sans text-slate-100 antialiased min-h-screen">
+
+  <!-- Navbar -->
+  <nav class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50 px-4 sm:px-6 py-3.5 flex justify-between items-center flex-wrap gap-3">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 flex items-center justify-center text-base sm:text-lg font-bold shrink-0">
+        <i class="fa-solid fa-user-md"></i>
+      </div>
+      <div>
+        <h1 class="text-sm sm:text-base font-bold text-white leading-tight">MediQueue Doctor Console</h1>
+        <p class="text-[11px] sm:text-xs text-slate-400 truncate max-w-[180px] sm:max-w-none" id="docWelcome">Loading profile...</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 sm:gap-4 ml-auto">
+      <div class="hidden sm:flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 text-xs text-teal-400">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="cabinetBadge">Cabinet --</span>
+      </div>
+      <button onclick="logout()" class="px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-red-400 rounded-xl border border-slate-700 transition flex items-center gap-2">
+        <i class="fa-solid fa-right-from-bracket"></i> <span class="hidden sm:inline">Logout</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- LEFT COLUMN: Live Consultation Controls & Active Patient -->
+    <section class="lg:col-span-1 space-y-6">
+
+      <!-- Active Consultation Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-teal-400 flex items-center gap-2">
+            <i class="fa-solid fa-stethoscope"></i> Current Patient
+          </h2>
+          <span id="currentStatusBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Idle</span>
+        </div>
+
+        <div id="activePatientCard" class="text-center py-6">
+          <p class="text-xs text-slate-500">No patient in consultation.</p>
+          <p class="text-xs text-slate-400 mt-1">Click "Call Next Patient" to start.</p>
+        </div>
+
+        <!-- Consultation Action Buttons -->
+        <div class="space-y-3 pt-2">
+          <button id="callNextBtn" onclick="callNextPatient()" class="w-full py-3.5 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-teal-500/20 hover:opacity-95 transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-bullhorn"></i> Call Next Patient
+          </button>
+
+          <div class="grid grid-cols-2 gap-3">
+            <button id="markCompleteBtn" onclick="markCompleted()" disabled class="py-3 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold rounded-xl border border-emerald-500/20 transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-check-circle"></i> Complete
+            </button>
+            <button id="skipBtn" onclick="skipPatient()" disabled class="py-3 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold rounded-xl border border-amber-500/20 transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-forward"></i> Skip
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Metrics -->
+      <div class="grid grid-cols-2 gap-3 sm:gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-center">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Waiting</p>
+          <p id="countWaiting" class="text-xl sm:text-2xl font-black text-amber-400">0</p>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-center">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Completed</p>
+          <p id="countCompleted" class="text-xl sm:text-2xl font-black text-emerald-400">0</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT / MIDDLE COLUMN: Queue & Full Schedule -->
+    <section class="lg:col-span-2 space-y-6 min-w-0">
+
+      <!-- Today's Live Queue -->
+      <div class="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 border-b border-slate-800 pb-4 mb-4">
+          <h3 class="text-xs sm:text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-list-ol text-teal-400"></i> Today's Queue
+          </h3>
+          <span id="todayDateStr" class="text-[11px] sm:text-xs font-semibold text-slate-400"></span>
+        </div>
+
+        <div class="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+          <table class="w-full min-w-[500px] text-left text-xs text-slate-300">
+            <thead class="bg-slate-800/50 text-slate-400 uppercase text-[10px] tracking-wider">
+              <tr>
+                <th class="p-3 rounded-l-xl">Token</th>
+                <th class="p-3">Patient Name</th>
+                <th class="p-3">Time Slot</th>
+                <th class="p-3">Reason</th>
+                <th class="p-3 rounded-r-xl text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody id="queueTableBody" class="divide-y divide-slate-800">
+              <tr>
+                <td colspan="5" class="p-4 text-center text-slate-500">Loading queue...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Schedule Overview -->
+      <div class="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl">
+        <h3 class="text-xs sm:text-sm font-bold text-slate-200 uppercase tracking-wider mb-4 border-b border-slate-800 pb-3 flex items-center gap-2">
+          <i class="fa-solid fa-calendar-days text-teal-400"></i> Full Appointment Schedule
+        </h3>
+        <div id="scheduleContainer" class="space-y-3">
+          <p class="text-xs text-slate-500 text-center py-4">No appointments scheduled.</p>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAnHPWqR7-kv8CfCIPeP2GbLinYeMBbdvI",
+        authDomain: "mediqueue-7e102.firebaseapp.com",
+        databaseURL: "https://mediqueue-7e102-default-rtdb.firebaseio.com",
+        projectId: "mediqueue-7e102",
+        storageBucket: "mediqueue-7e102.firebasestorage.app",
+        messagingSenderId: "706470463870",
+        appId: "1:706470463870:web:af79e7a633cde754bacb2f",
+        measurementId: "G-V1MKN7QCMM"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+
+    if (!currentUser || currentUser.role !== 'doctor') {
+      window.location.href = 'doctor-auth.html';
+    }
+
+    document.getElementById('docWelcome').textContent = `${currentUser.fullName} (${currentUser.department || 'Doctor'})`;
+    document.getElementById('cabinetBadge').textContent = `Cabinet ${currentUser.cabinetNo || 'A-1'}`;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    document.getElementById('todayDateStr').textContent = `Date: ${todayStr}`;
+
+    let todayAppointments = [];
+    let currentActiveApp = null;
+
+    // Listen to appointments assigned to this doctor
+    function listenDoctorQueue() {
+      const appRef = ref(db, 'appointments');
+      onValue(appRef, (snapshot) => {
+        const queueTableBody = document.getElementById('queueTableBody');
+        const scheduleContainer = document.getElementById('scheduleContainer');
+        
+        queueTableBody.innerHTML = '';
+        scheduleContainer.innerHTML = '';
+        todayAppointments = [];
+        currentActiveApp = null;
+
+        let waitingCount = 0;
+        let completedCount = 0;
+
+        if (!snapshot.exists()) {
+          queueTableBody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">No appointments recorded.</td></tr>';
+          updateActiveCard(null);
+          return;
+        }
+
+        const data = snapshot.val();
+
+        Object.values(data).forEach(app => {
+          if (app.doctorUid === currentUser.uid || app.doctorName === currentUser.fullName) {
+            
+            // Check if appointment is for today
+            if (app.date === todayStr) {
+              todayAppointments.push(app);
+
+              if (app.status === 'Confirmed') waitingCount++;
+              if (app.status === 'Completed') completedCount++;
+              if (app.status === 'In Consultation') currentActiveApp = app;
+            }
+
+            // Render Schedule Item
+            const schedItem = document.createElement('div');
+            schedItem.className = "p-3 bg-slate-800/40 border border-slate-800 rounded-xl flex items-center justify-between text-xs gap-2";
+            schedItem.innerHTML = `
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="font-bold text-teal-400 shrink-0">${app.tokenNumber}</span>
+                <div class="min-w-0">
+                  <p class="font-semibold text-white truncate">${app.patientName}</p>
+                  <p class="text-[10px] text-slate-400">${app.date} • ${app.time}</p>
+                </div>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${getStatusStyle(app.status)}">${app.status}</span>
+            `;
+            scheduleContainer.appendChild(schedItem);
+          }
+        });
+
+        // Update Counts
+        document.getElementById('countWaiting').textContent = waitingCount;
+        document.getElementById('countCompleted').textContent = completedCount;
+
+        // Render Today's Queue Table
+        if (todayAppointments.length === 0) {
+          queueTableBody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500">No appointments for today.</td></tr>';
+        } else {
+          todayAppointments.forEach(app => {
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-slate-800/30 transition border-b border-slate-800/50";
+            tr.innerHTML = `
+              <td class="p-3 font-bold text-teal-400">${app.tokenNumber}</td>
+              <td class="p-3 font-medium text-white">${app.patientName}</td>
+              <td class="p-3 text-slate-400">${app.time}</td>
+              <td class="p-3 text-slate-400">${app.reason || 'Checkup'}</td>
+              <td class="p-3 text-right">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${getStatusStyle(app.status)}">${app.status}</span>
+              </td>
+            `;
+            queueTableBody.appendChild(tr);
+          });
+        }
+
+        updateActiveCard(currentActiveApp);
+      });
+    }
+
+    function getStatusStyle(status) {
+      switch(status) {
+        case 'In Consultation': return 'bg-teal-500/20 text-teal-400 border-teal-500/30';
+        case 'Confirmed': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+        case 'Completed': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+        case 'Skipped': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+        case 'Cancelled': return 'bg-red-500/20 text-red-400 border-red-500/30';
+        default: return 'bg-slate-800 text-slate-400 border-slate-700';
+      }
+    }
+
+    function updateActiveCard(app) {
+      const activeCard = document.getElementById('activePatientCard');
+      const badge = document.getElementById('currentStatusBadge');
+      const completeBtn = document.getElementById('markCompleteBtn');
+      const skipBtn = document.getElementById('skipBtn');
+
+      if (!app) {
+        badge.textContent = "Idle";
+        badge.className = "px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700";
+        activeCard.innerHTML = `
+          <p class="text-xs text-slate-500">No patient currently in consultation.</p>
+          <p class="text-[10px] text-slate-600 mt-1">Click "Call Next Patient" to proceed.</p>
+        `;
+        completeBtn.disabled = true;
+        skipBtn.disabled = true;
+      } else {
+        badge.textContent = "In Consultation";
+        badge.className = "px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/20 text-teal-400 border border-teal-500/30 animate-pulse";
+        activeCard.innerHTML = `
+          <div class="inline-block p-3 rounded-full bg-teal-500/10 text-teal-400 text-2xl font-black mb-2">
+            ${app.tokenNumber}
+          </div>
+          <h4 class="text-lg font-bold text-white">${app.patientName}</h4>
+          <p class="text-xs text-slate-400 mt-1">Slot: ${app.time}</p>
+          <p class="text-xs text-slate-300 bg-slate-800 p-2.5 rounded-xl border border-slate-700 mt-3 text-left">
+            <strong>Reason:</strong> ${app.reason || 'General Consultation'}
+          </p>
+        `;
+        completeBtn.disabled = false;
+        skipBtn.disabled = false;
+      }
+    }
+
+    // Call Next Patient Function
+    window.callNextPatient = async () => {
+      if (currentActiveApp) {
+        return alert("Please complete or skip the current patient before calling the next one.");
+      }
+
+      const nextApp = todayAppointments.find(a => a.status === 'Confirmed');
+      if (!nextApp) {
+        return alert("No waiting patients in today's queue!");
+      }
+
+      await update(ref(db, `appointments/${nextApp.id}`), { status: 'In Consultation' });
+    };
+
+    // Mark Current Patient Completed
+    window.markCompleted = async () => {
+      if (!currentActiveApp) return;
+      await update(ref(db, `appointments/${currentActiveApp.id}`), { status: 'Completed' });
+    };
+
+    // Skip Current Patient
+    window.skipPatient = async () => {
+      if (!currentActiveApp) return;
+      await update(ref(db, `appointments/${currentActiveApp.id}`), { status: 'Skipped' });
+    };
+
+    window.logout = () => {
+      localStorage.removeItem('currentUser');
+      window.location.href = 'doctor-auth.html';
+    };
+
+    listenDoctorQueue();
+  </script>
+</body>
+</html>
